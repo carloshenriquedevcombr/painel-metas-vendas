@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI Evolução | Painel de Metas</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <link rel="stylesheet" href="/static/css/main.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <script>
+        const USER_ROLE = "{{ usuario.role }}";
+        const USER_NAME = "{{ usuario.nome }}";
+    </script>
+
+    <div class="app-container">
+        
+        <button id="mobile-menu-btn" onclick="toggleSidebarMobile()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h2>Evolução</h2>
+                    </div>
+                    <button class="close-sidebar-btn" onclick="toggleSidebarMobile()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <nav>
+                <ul>
+                    <li class="{% if active_page == 'dashboard' %}active{% endif %}" onclick="window.location.href='/'">
+                        <i class="fa-solid fa-chart-pie"></i> <span>Dashboard BI</span>
+                    </li>
+                    
+                    {% if usuario.role != 'consultor' %}
+                    <li class="{% if active_page == 'lancamentos' %}active{% endif %}" onclick="window.location.href='/lancamentos'">
+                        <i class="fa-solid fa-pen-to-square"></i> <span>Lançar Vendas</span>
+                    </li>
+                    
+                    <li class="{% if active_page == 'metas' %}active{% endif %}" onclick="window.location.href='/metas_tela'">
+                        <i class="fa-solid fa-bullseye"></i> <span>Metas</span>
+                    </li>
+                    
+                    <li class="{% if active_page == 'premiacao' %}active{% endif %}" onclick="window.location.href='/premiacao'">
+                        <i class="fa-solid fa-trophy"></i> <span>Premiação & Performance</span>
+                    </li>
+
+                    <li class="{% if active_page == 'usuarios' %}active{% endif %}" onclick="window.location.href='/usuarios_tela'">
+                        <i class="fa-solid fa-users-gear"></i> <span>Acessos</span>
+                    </li>
+                    {% endif %}
+
+                    {% if usuario.role == 'admin' %}
+                    <li class="{% if active_page == 'backup' %}active{% endif %}" onclick="window.location.href='/backup'" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                        <i class="fa-solid fa-database" style="color: #2ecc71;"></i> <span style="color: #2ecc71;">Gestão de Backups</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <div class="user-info">
+                <div style="font-size: 2rem; margin-bottom: 10px;">
+                    <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <p>Olá, <strong>{{ usuario.nome }}</strong></p>
+                <small class="user-cargo">{{ usuario.cargo }}</small>
+                
+                <div class="user-actions">
+                    <button onclick="abrirModalSenha()" class="btn-theme" title="Trocar Senha">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
+                    <a href="/logout" class="btn-logout" title="Sair">Sair</a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button id="desktop-toggle" onclick="toggleSidebarDesktop()">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <h1 id="titulo-secao">{% block titulo_pagina %}Inteligência de Negócios{% endblock %}</h1>
+                </div>
+                <div class="date-display" id="data-hoje"></div>
+            </header>
+
+            {% block content %}{% endblock %}
+
+        </main>
+    </div>
+
+    <div id="modal-logs" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="titulo-modal-log">Histórico</h2><button onclick="fecharModalLogs()" class="btn-close">X</button></div>
+            <input type="text" id="filtro-log-interno" placeholder="Filtrar..." style="margin-bottom:10px; width:100%;" onkeyup="filtrarTabelaLogs()">
+            <div class="scroll-table" style="max-height:400px; overflow-y:auto;">
+                <table id="tabela-logs-conteudo" style="width:100%">
+                    <thead><tr><th>Data/Hora</th><th>Quem Fez</th><th>Ação</th><th>Detalhes</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-senha" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header"><h2>Trocar Senha</h2><button onclick="fecharModalSenha()" class="btn-close">X</button></div>
+            <input type="password" id="nova-senha-usuario" placeholder="Nova Senha" style="width:100%;margin-bottom:15px;">
+            <button onclick="salvarNovaSenha()" class="btn-save" style="width:100%">Confirmar</button>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        document.getElementById('data-hoje').innerText = new Date().toLocaleDateString('pt-BR');
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

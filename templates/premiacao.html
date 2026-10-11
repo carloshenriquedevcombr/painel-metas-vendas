@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% set active_page = 'premiacao' %}
+
+{% block titulo_pagina %}Premiação & Performance (Dashboard Analítico){% endblock %}
+
+{% block content %}
+<style>
+    /* TEMA ESCURO EXCLUSIVO PARA ESTE PAINEL (Estilo Power BI Neon) */
+    .dark-dashboard {
+        background-color: #0b0c10;
+        color: #ffffff;
+        border-radius: 20px;
+        padding: 25px;
+        font-family: 'Nunito', sans-serif;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    
+    .neon-filter-bar {
+        display: flex; gap: 15px; margin-bottom: 25px; align-items: flex-end; flex-wrap: wrap;
+        background: #161a2b; padding: 20px; border-radius: 15px; border: 1px solid #252a40;
+    }
+    
+    .neon-filter-bar label {
+        display: block; font-size: 0.8rem; font-weight: bold; color: #8a94a6; margin-bottom: 8px; text-transform: uppercase;
+    }
+    
+    .neon-filter-bar input, .neon-filter-bar select {
+        background: #1f2438; border: 1px solid #323854; color: #fff; 
+        border-radius: 8px; padding: 12px; font-family: 'Nunito'; width: 200px; outline: none;
+    }
+    
+    .neon-kpi-row {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;
+    }
+    
+    .neon-card {
+        background: #161a2b; border-radius: 15px; padding: 25px; border: 1px solid #252a40;
+        position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+    }
+    
+    .neon-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+    }
+    .glow-purple::before { background: #d500f9; box-shadow: 0 0 15px #d500f9; }
+    .glow-cyan::before { background: #00e5ff; box-shadow: 0 0 15px #00e5ff; }
+    .glow-pink::before { background: #f50057; box-shadow: 0 0 15px #f50057; }
+    .glow-green::before { background: #00e676; box-shadow: 0 0 15px #00e676; }
+    
+    .neon-card h3 { font-size: 0.9rem; color: #8a94a6; text-transform: uppercase; margin-bottom: 10px; font-weight: 700; }
+    .neon-card p { font-size: 2rem; font-weight: 900; margin: 0; }
+    
+    .charts-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px;
+    }
+    
+    .chart-container {
+        background: #161a2b; border-radius: 15px; padding: 20px; border: 1px solid #252a40;
+        display: flex; flex-direction: column;
+    }
+    .chart-container h3 {
+        font-size: 1rem; color: #fff; margin-bottom: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    }
+    .canvas-wrapper {
+        position: relative; height: 300px; width: 100%;
+    }
+
+    .btn-pdf {
+        background: linear-gradient(90deg, #d500f9 0%, #f50057 100%);
+        color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(213, 0, 249, 0.4); display: flex; align-items: center; gap: 10px; font-size: 1rem;
+    }
+    .btn-pdf:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(213, 0, 249, 0.6); }
+</style>
+
+<section class="secao-ativa">
+    
+    <div id="neon-dashboard" class="dark-dashboard">
+        
+        <div class="neon-filter-bar" data-html2canvas-ignore="true">
+            <div>
+                <label>Mês de Análise:</label>
+                <input type="month" id="filtro-mes" onchange="carregarDashboardDark()">
+            </div>
+            <div>
+                <label>Consultor(a):</label>
+                <select id="filtro-consultor" onchange="carregarDashboardDark()">
+                    <option value="todos">Todos da Equipe</option>
+                </select>
+            </div>
+            <div style="flex-grow: 1; display: flex; justify-content: flex-end;">
+                <button onclick="exportarParaPDF()" class="btn-pdf">
+                    <i class="fa-solid fa-file-pdf"></i> Exportar Relatório PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="neon-kpi-row">
+            <div class="neon-card glow-purple">
+                <h3><i class="fa-solid fa-money-bill-wave"></i> Faturamento Geral</h3>
+                <p id="kpi-total-geral" style="color: #d500f9; text-shadow: 0 0 10px rgba(213, 0, 249, 0.4);">R$ 0,00</p>
+            </div>
+            <div class="neon-card glow-cyan">
+                <h3><i class="fa-solid fa-mobile-screen"></i> Receita Aparelhos</h3>
+                <p id="kpi-aparelhos" style="color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);">R$ 0,00</p>
+            </div>
+            <div class="neon-card glow-pink">
+                <h3><i class="fa-solid fa-box-open"></i> Receita Produtos R$</h3>
+                <p id="kpi-produtos" style="color: #f50057; text-shadow: 0 0 10px rgba(245, 0, 87, 0.4);">R$ 0,00</p>
+            </div>
+            <div class="neon-card glow-green">
+                <h3><i class="fa-solid fa-chart-pie"></i> Receita Serviços</h3>
+                <p id="kpi-receita" style="color: #00e676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.4);">R$ 0,00</p>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            
+            <div class="chart-container">
+                <h3><i class="fa-solid fa-chart-area" style="color: #d500f9;"></i> Evolução de Vendas Diárias</h3>
+                <div class="canvas-wrapper"><canvas id="chart-area"></canvas></div>
+            </div>
+
+            <div class="chart-container">
+                <h3><i class="fa-solid fa-chart-pie" style="color: #00e5ff;"></i> Distribuição do Faturamento</h3>
+                <div class="canvas-wrapper" style="display: flex; justify-content: center;"><canvas id="chart-donut"></canvas></div>
+            </div>
+
+            <div class="chart-container">
+                <h3><i class="fa-solid fa-medal" style="color: #f50057;"></i> Top 5 Consultores (Faturamento)</h3>
+                <div class="canvas-wrapper"><canvas id="chart-bar-horizontal"></canvas></div>
+            </div>
+
+            <div class="chart-container">
+                <h3><i class="fa-solid fa-chart-column" style="color: #00e676;"></i> Mix de Produtos (Volume)</h3>
+                <div class="canvas-wrapper"><canvas id="chart-bar-vertical"></canvas></div>
+            </div>
+
+        </div>
+    </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let chartArea, chartDonut, chartHBar, chartVBar;
+
+    // Configurações globais do Chart.js para o modo escuro
+    Chart.defaults.color = '#8a94a6';
+    Chart.defaults.borderColor = '#252a40';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Define mês atual no input
+        const inputMes = document.getElementById('filtro-mes');
+        const hoje = new Date();
+        inputMes.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        
+        // Carrega lista de consultores
+        try {
+            const res = await fetch('/api/lista_consultores');
+            if (res.ok) {
+                const consultores = await res.json();
+                const select = document.getElementById('filtro-consultor');
+                consultores.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
+            }
+        } catch (e) {}
+
+        carregarDashboardDark();
+    });
+
+    async function carregarDashboardDark() {
+        const mesSelecionado = document.getElementById('filtro-mes').value; // YYYY-MM
+        const consultorFiltro = document.getElementById('filtro-consultor').value;
+
+        try {
+            const res = await fetch('/api/dados?excluidos=false');
+            let dados = await res.json();
+
+            // REGRA MESTRE: APENAS STATUS "Concluido"
+            dados = dados.filter(d => d.status === 'Concluido');
+
+            // Filtro de Mês e Consultor
+            dados = dados.filter(d => {
+                const dataVenda = d.data_venda.substring(0, 7); // Pega YYYY-MM
+                const bateMes = dataVenda === mesSelecionado;
+                const bateConsultor = (consultorFiltro === 'todos' || d.consultor === consultorFiltro);
+                return bateMes && bateConsultor;
+            });
+
+            atualizarKpisDark(dados);
+            desenharGraficosDark(dados);
+
+        } catch (error) {
+            console.error("Erro ao carregar dados do painel escuro:", error);
+        }
+    }
+
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarKpisDark(dados) {
+        let totReceita = 0, totAparelhos = 0, totProdutosRs = 0;
+        
+        dados.forEach(d => {
+            totReceita += (d.receita || 0);
+            totAparelhos += (d.aparelhos || 0);
+            totProdutosRs += (d.produtos_rs || 0);
+        });
+
+        const totalGeral = totReceita + totAparelhos + totProdutosRs;
+
+        document.getElementById('kpi-receita').innerText = formatarMoeda(totReceita);
+        document.getElementById('kpi-aparelhos').innerText = formatarMoeda(totAparelhos);
+        document.getElementById('kpi-produtos').innerText = formatarMoeda(totProdutosRs);
+        document.getElementById('kpi-total-geral').innerText = formatarMoeda(totalGeral);
+    }
+
+    function desenharGraficosDark(dados) {
+        // 1. DADOS PARA GRÁFICO DE ÁREA (Evolução Diária)
+        const vendasPorDia = {};
+        dados.forEach(d => {
+            const dia = d.data_venda.split('-').reverse().join('/'); // DD/MM/YYYY
+            const totalDia = (d.receita || 0) + (d.aparelhos || 0) + (d.produtos_rs || 0);
+            if(!vendasPorDia[dia]) vendasPorDia[dia] = 0;
+            vendasPorDia[dia] += totalDia;
+        });
+        
+        const diasOrdenados = Object.keys(vendasPorDia).sort((a,b) => {
+            const da = a.split('/').reverse().join(''); const db = b.split('/').reverse().join(''); return da.localeCompare(db);
+        });
+        const valoresDias = diasOrdenados.map(d => vendasPorDia[d]);
+
+        if(chartArea) chartArea.destroy();
+        chartArea = new Chart(document.getElementById('chart-area'), {
+            type: 'line',
+            data: {
+                labels: diasOrdenados,
+                datasets: [{
+                    label: 'Faturamento (R$)', data: valoresDias, 
+                    borderColor: '#d500f9', backgroundColor: 'rgba(213, 0, 249, 0.2)',
+                    fill: true, tension: 0.4, pointBackgroundColor: '#d500f9'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // 2. DADOS PARA DONUT (Distribuição)
+        let sumRec = 0, sumApa = 0, sumProd = 0;
+        dados.forEach(d => { sumRec += (d.receita||0); sumApa += (d.aparelhos||0); sumProd += (d.produtos_rs||0); });
+        
+        if(chartDonut) chartDonut.destroy();
+        chartDonut = new Chart(document.getElementById('chart-donut'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Serviços', 'Aparelhos', 'Produtos Extras'],
+                datasets: [{
+                    data: [sumRec, sumApa, sumProd],
+                    backgroundColor: ['#00e676', '#00e5ff', '#f50057'],
+                    borderWidth: 0, hoverOffset: 10
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }
+        });
+
+        // 3. DADOS PARA BARRAS HORIZONTAIS (Top Consultores)
+        const porConsultor = {};
+        dados.forEach(d => {
+            const tot = (d.receita||0) + (d.aparelhos||0) + (d.produtos_rs||0);
+            if(!porConsultor[d.consultor]) porConsultor[d.consultor] = 0;
+            porConsultor[d.consultor] += tot;
+        });
+        
+        const topConsultores = Object.keys(porConsultor).map(k => ({nome: k, valor: porConsultor[k]})).sort((a,b) => b.valor - a.valor).slice(0,5);
+
+        if(chartHBar) chartHBar.destroy();
+        chartHBar = new Chart(document.getElementById('chart-bar-horizontal'), {
+            type: 'bar',
+            data: {
+                labels: topConsultores.map(c => c.nome),
+                datasets: [{
+                    label: 'Faturamento', data: topConsultores.map(c => c.valor),
+                    backgroundColor: '#f50057', borderRadius: 5
+                }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // 4. DADOS PARA BARRAS VERTICAIS (Volumetria de Mix)
+        let totAltas = 0, totMovel = 0, totMigFixa = 0, totBL = 0;
+        dados.forEach(d => {
+            totAltas += (d.altas_portin||0); totMovel += (d.mig_movel||0);
+            totMigFixa += (d.mig_fixa_bl||0); totBL += (d.bl||0);
+        });
+
+        if(chartVBar) chartVBar.destroy();
+        chartVBar = new Chart(document.getElementById('chart-bar-vertical'), {
+            type: 'bar',
+            data: {
+                labels: ['Altas/PN', 'Mig Móvel', 'Mig Fixa', 'Banda Larga'],
+                datasets: [{
+                    label: 'Quantidade', data: [totAltas, totMovel, totMigFixa, totBL],
+                    backgroundColor: ['#b388ff', '#82b1ff', '#ea80fc', '#b9f6ca'], borderRadius: 5
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Geração de PDF do Dashboard Inteiro
+    window.exportarParaPDF = function() {
+        const btn = document.querySelector('.btn-pdf');
+        const txtOriginal = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando PDF...';
+        btn.disabled = true;
+
+        const painel = document.getElementById('neon-dashboard');
+        
+        // Aumenta a escala para melhorar a qualidade do PDF
+        html2canvas(painel, { scale: 2, backgroundColor: '#0b0c10' }).then(canvas => {
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const pdf = new jspdf.jsPDF('landscape', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Dashboard_Premiacao_${new Date().getTime()}.pdf`);
+            
+            btn.innerHTML = txtOriginal;
+            btn.disabled = false;
+        }).catch(err => {
+            console.error(err);
+            Swal.fire('Erro', 'Falha ao gerar o PDF.', 'error');
+            btn.innerHTML = txtOriginal;
+            btn.disabled = false;
+        });
+    }
+</script>
+{% endblock %}

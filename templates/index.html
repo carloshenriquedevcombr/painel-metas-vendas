@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% set active_page = 'dashboard' %}
+
+{% block titulo_pagina %}Dashboard BI - Inteligência de Negócios{% endblock %}
+
+{% block content %}
+<section class="secao-ativa" id="painel-dashboard-bi">
+    
+    <div class="form-container" style="padding: 20px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-left: 5px solid var(--cor-primaria);">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; flex: 1;">
+            <div class="input-group" style="margin: 0; min-width: 150px;">
+                <label style="font-size: 0.8rem; margin-bottom: 5px;">Data Inicial</label>
+                <input type="date" id="filtro-data-inicio" onchange="carregarDashboardBI()" style="padding: 8px;">
+            </div>
+            <div class="input-group" style="margin: 0; min-width: 150px;">
+                <label style="font-size: 0.8rem; margin-bottom: 5px;">Data Final</label>
+                <input type="date" id="filtro-data-fim" onchange="carregarDashboardBI()" style="padding: 8px;">
+            </div>
+            <div class="input-group" style="margin: 0; min-width: 200px; flex: 1;">
+                <label style="font-size: 0.8rem; margin-bottom: 5px;">Consultor(a)</label>
+                <select id="filtro-bi-consultor" onchange="carregarDashboardBI()" style="padding: 8px;">
+                    <option value="todos">Toda a Equipe</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: flex; align-items: flex-end; gap: 10px;">
+            <button onclick="carregarDashboardBI()" class="btn-primary" style="background: var(--cor-primaria) !important; padding: 10px 20px;" title="Atualizar Painel">
+                <i class="fa-solid fa-rotate-right"></i> Atualizar
+            </button>
+            <button onclick="exportarDashboardPDF()" class="btn-primary" style="background: #e74c3c !important; color: white !important; padding: 10px 20px;">
+                <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom: 25px;">
+        
+        <div class="kpi-card" style="border-left: 5px solid #2ecc71;">
+            <div class="kpi-icon" style="color: #2ecc71;"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="kpi-info">
+                <h3>Faturamento Concluído</h3>
+                <p id="bi-fat-concluido" style="color: #27ae60; font-size: 1.8rem;">R$ 0,00</p>
+                <small style="color: #7f8c8d; font-weight: bold;">Pipeline Total: <span id="bi-fat-total">R$ 0,00</span></small>
+            </div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 5px solid #3498db;">
+            <div class="kpi-icon" style="color: #3498db;"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="kpi-info">
+                <h3>Projeção do Mês</h3>
+                <p id="bi-proj-mes" style="color: #2980b9; font-size: 1.8rem;">R$ 0,00</p>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666; font-weight: bold; margin-top: 5px;">
+                    <span>Dia: <span id="bi-proj-dia" style="color:#3498db;">R$ 0</span></span>
+                    <span>Semana: <span id="bi-proj-semana" style="color:#3498db;">R$ 0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 5px solid #f1c40f;" id="card-ranking-equipe">
+            <div class="kpi-icon" style="color: #f1c40f;"><i class="fa-solid fa-users-rays"></i></div>
+            <div class="kpi-info">
+                <h3>Consultor Destaque</h3>
+                <p id="bi-top-consultor" style="color: #d35400; font-size: 1.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</p>
+                <small style="color: #e74c3c; font-weight: bold;">Atenção: <span id="bi-bottom-consultor">-</span></small>
+            </div>
+        </div>
+
+        <div class="kpi-card" style="border-left: 5px solid var(--cor-destaque);">
+            <div class="kpi-icon" style="color: var(--cor-destaque);"><i class="fa-solid fa-box-open"></i></div>
+            <div class="kpi-info">
+                <h3>Produto Campeão</h3>
+                <p id="bi-top-produto" style="color: var(--cor-destaque); font-size: 1.4rem;">-</p>
+                <small style="color: #7f8c8d; font-weight: bold;">Menos Saída: <span id="bi-bottom-produto">-</span></small>
+            </div>
+        </div>
+
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        
+        <div class="table-container" style="margin:0;">
+            <div class="table-header">
+                <h3 style="color: var(--cor-primaria); font-size: 1rem;"><i class="fa-solid fa-gauge-high"></i> Ritmo de Vendas (Pace)</h3>
+            </div>
+            <div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 20px;">
+                <canvas id="chart-gauge"></canvas>
+                <div style="position: absolute; bottom: 30px; text-align: center; width: 100%;">
+                    <span id="texto-gauge-percent" style="font-size: 2rem; font-weight: 900; color: var(--cor-primaria);">0%</span>
+                    <br><span style="font-size: 0.8rem; color: #888; font-weight: bold;">da Meta Mensal Estimada</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin:0;">
+            <div class="table-header">
+                <h3 style="color: var(--cor-primaria); font-size: 1rem;"><i class="fa-solid fa-chart-pie"></i> Conversão do Pipeline</h3>
+            </div>
+            <div style="height: 250px; width: 100%; display: flex; justify-content: center;">
+                <canvas id="chart-donut-status"></canvas>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin:0; grid-column: 1 / -1;">
+            <div class="table-header">
+                <h3 style="color: var(--cor-primaria); font-size: 1rem;"><i class="fa-solid fa-chart-area"></i> Evolução Diária (Concluído vs Total)</h3>
+            </div>
+            <div style="height: 300px; width: 100%;">
+                <canvas id="chart-linha-evolucao"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js?v=1.0"></script>
+{% endblock %}

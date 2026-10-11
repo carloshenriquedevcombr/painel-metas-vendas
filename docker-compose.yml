@@ -1,0 +1,14 @@
+services:
+  painel-metas:
+    build: .
+    container_name: painel-metas-vendas
+    restart: unless-stopped
+    # Variáveis sensíveis ficam no arquivo .env (copie de .env.example)
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/app/db
+    volumes:
+      - ./data_db:/app/db
+    ports:
+      - "5000:5000"

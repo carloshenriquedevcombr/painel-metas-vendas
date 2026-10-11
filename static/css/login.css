@@ -1,0 +1,88 @@
+:root {
+    --cor-primaria: #1e40af;
+    --cor-destaque: #0d9488;
+    --text-dark: #333;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
+body.login-page {
+    font-family: 'Nunito', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #fdfbfd 0%, #f3e5f5 100%);
+    overflow: hidden;
+}
+
+/* Bolas de fundo animadas */
+body.login-page::before {
+    content: ''; position: absolute; top: -10%; left: -10%;
+    width: 50vw; height: 50vw; background: var(--cor-primaria);
+    filter: blur(120px); opacity: 0.3; z-index: -1;
+    border-radius: 50%;
+}
+body.login-page::after {
+    content: ''; position: absolute; bottom: -10%; right: -10%;
+    width: 50vw; height: 50vw; background: var(--cor-destaque);
+    filter: blur(120px); opacity: 0.2; z-index: -1;
+    border-radius: 50%;
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    padding: 50px 40px;
+    border-radius: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(30, 64, 175, 0.15);
+    animation: fadeInUp 0.8s ease;
+}
+
+.login-logo {
+    font-size: 3rem;
+    color: var(--cor-primaria);
+    margin-bottom: 10px;
+}
+
+.login-title {
+    color: var(--text-dark);
+    margin-bottom: 30px;
+    font-weight: 800;
+}
+
+.flash-msg {
+    background: #ffcccc; color: #cc0000;
+    padding: 10px; border-radius: 10px;
+    margin-bottom: 20px; font-size: 0.9rem;
+}
+
+.input-group { margin-bottom: 20px; text-align: left; }
+.input-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+.input-group input {
+    width: 100%; padding: 12px;
+    border: 2px solid #eee; border-radius: 10px;
+    font-family: 'Nunito'; font-size: 1rem;
+    background: rgba(255,255,255,0.9);
+}
+.input-group input:focus { border-color: var(--cor-primaria); }
+
+.btn-primary {
+    background: linear-gradient(90deg, var(--cor-primaria), #3b82f6);
+    color: white; border: none; width: 100%;
+    padding: 15px; font-size: 1.1rem; border-radius: 50px;
+    font-weight: 700; cursor: pointer; transition: 0.3s;
+    box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+.footer-text { margin-top: 20px; font-size: 0.8rem; color: #888; }
+
+@keyframes fadeInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
